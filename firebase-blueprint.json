@@ -1,0 +1,253 @@
+{
+  "entities": {
+    "PlayerProfile": {
+      "title": "PlayerProfile",
+      "description": "Cloud-synced profile and progression state for a Fishing Master player.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the player." },
+        "username": { "type": "string", "description": "Display name of the angler (1-30 chars)." },
+        "avatarId": { "type": "string", "description": "Selected avatar identifier." },
+        "level": { "type": "integer", "description": "Current player level." },
+        "xp": { "type": "integer", "description": "Current XP progress within level." },
+        "coins": { "type": "integer", "description": "In-game gold coins balance." },
+        "gems": { "type": "integer", "description": "In-game gems balance." },
+        "totalCatches": { "type": "integer", "description": "Lifetime fish caught count." },
+        "biggestCatchWeightKg": { "type": "number", "description": "Heaviest fish caught in kg." },
+        "biggestCatchFishName": { "type": "string", "description": "Name of heaviest fish caught." },
+        "equippedRodId": { "type": "string" },
+        "equippedReelId": { "type": "string" },
+        "equippedLineId": { "type": "string" },
+        "equippedBaitId": { "type": "string" },
+        "equippedSkinId": { "type": "string" },
+        "activeLocationId": { "type": "string" },
+        "loginStreakDay": { "type": "integer" },
+        "lastLoginDate": { "type": "string" },
+        "battlePassXp": { "type": "integer" },
+        "isPremiumPass": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp on creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp on update." }
+      },
+      "required": [
+        "userId", "username", "avatarId", "level", "xp", "coins", "gems",
+        "totalCatches", "biggestCatchWeightKg", "biggestCatchFishName",
+        "equippedRodId", "equippedReelId", "equippedLineId", "equippedBaitId",
+        "equippedSkinId", "activeLocationId", "loginStreakDay", "lastLoginDate",
+        "battlePassXp", "isPremiumPass", "createdAt", "updatedAt"
+      ]
+    },
+    "FishCatchRecord": {
+      "title": "FishCatchRecord",
+      "description": "An individual fish catch saved in the player's inventory and Fishdex.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "fishId": { "type": "string" },
+        "fishName": { "type": "string" },
+        "rarity": { "type": "string", "enum": ["Common", "Uncommon", "Rare", "Epic", "Legendary"] },
+        "weightKg": { "type": "number" },
+        "lengthCm": { "type": "number" },
+        "locationId": { "type": "string" },
+        "weather": { "type": "string" },
+        "sellPrice": { "type": "integer" },
+        "isKept": { "type": "boolean" },
+        "isRecord": { "type": "boolean" },
+        "caughtAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId", "fishId", "fishName", "rarity", "weightKg", "lengthCm",
+        "locationId", "weather", "sellPrice", "isKept", "isRecord", "caughtAt"
+      ]
+    },
+    "OwnedGearItem": {
+      "title": "OwnedGearItem",
+      "description": "Owned rod, reel, line, bait, skin, or consumable item with upgrade stats.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "itemId": { "type": "string" },
+        "category": { "type": "string", "enum": ["Rod", "Reel", "Line", "Bait", "Skin", "Item"] },
+        "name": { "type": "string" },
+        "rarity": { "type": "string", "enum": ["Common", "Uncommon", "Rare", "Epic", "Legendary"] },
+        "level": { "type": "integer" },
+        "power": { "type": "integer" },
+        "control": { "type": "integer" },
+        "durability": { "type": "integer" },
+        "quantity": { "type": "integer" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId", "itemId", "category", "name", "rarity",
+        "level", "power", "control", "durability", "quantity", "updatedAt"
+      ]
+    },
+    "MissionProgress": {
+      "title": "MissionProgress",
+      "description": "Daily, weekly, and achievement progress state.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "missionId": { "type": "string" },
+        "progress": { "type": "integer" },
+        "claimed": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "missionId", "progress", "claimed", "updatedAt"]
+    },
+    "FriendEntry": {
+      "title": "FriendEntry",
+      "description": "Social friend entry for multiplayer invites and gifting.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "friendUid": { "type": "string" },
+        "friendName": { "type": "string" },
+        "friendLevel": { "type": "integer" },
+        "avatarId": { "type": "string" },
+        "isOnline": { "type": "boolean" },
+        "addedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "friendUid", "friendName", "friendLevel", "avatarId", "isOnline", "addedAt"]
+    },
+    "LeaderboardEntry": {
+      "title": "LeaderboardEntry",
+      "description": "Public angler catch and tournament leaderboard entry (no PII).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "avatarId": { "type": "string" },
+        "level": { "type": "integer" },
+        "biggestFishName": { "type": "string" },
+        "biggestWeightKg": { "type": "number" },
+        "tournamentScore": { "type": "integer" },
+        "totalCatches": { "type": "integer" },
+        "isPublic": { "type": "boolean" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId", "username", "avatarId", "level", "biggestFishName",
+        "biggestWeightKg", "tournamentScore", "totalCatches", "isPublic", "updatedAt"
+      ]
+    },
+    "MultiplayerRoom": {
+      "title": "MultiplayerRoom",
+      "description": "Multiplayer fishing room lobby metadata.",
+      "type": "object",
+      "properties": {
+        "hostId": { "type": "string" },
+        "roomCode": { "type": "string" },
+        "name": { "type": "string" },
+        "region": { "type": "string", "enum": ["Indonesia", "Asia", "Global", "Eropa", "Amerika"] },
+        "locationId": { "type": "string" },
+        "status": { "type": "string", "enum": ["waiting", "playing", "closed"] },
+        "maxPlayers": { "type": "integer" },
+        "playerCount": { "type": "integer" },
+        "participantIds": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "hostId", "roomCode", "name", "region", "locationId", "status",
+        "maxPlayers", "playerCount", "participantIds", "createdAt", "updatedAt"
+      ]
+    },
+    "RoomPlayer": {
+      "title": "RoomPlayer",
+      "description": "Player presence and tournament score inside a multiplayer room.",
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string" },
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "avatarId": { "type": "string" },
+        "level": { "type": "integer" },
+        "isReady": { "type": "boolean" },
+        "score": { "type": "integer" },
+        "lastCatchName": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "roomId", "userId", "username", "avatarId", "level",
+        "isReady", "score", "lastCatchName", "updatedAt"
+      ]
+    },
+    "RoomMessage": {
+      "title": "RoomMessage",
+      "description": "Chat message or emote posted inside a multiplayer room.",
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "type": { "type": "string", "enum": ["chat", "emote", "quick_chat", "system"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["roomId", "senderId", "senderName", "text", "type", "createdAt"]
+    },
+    "PlayerGift": {
+      "title": "PlayerGift",
+      "description": "Item or coin gift sent between players.",
+      "type": "object",
+      "properties": {
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "recipientId": { "type": "string" },
+        "itemId": { "type": "string" },
+        "itemName": { "type": "string" },
+        "quantity": { "type": "integer" },
+        "coinsGift": { "type": "integer" },
+        "status": { "type": "string", "enum": ["pending", "claimed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "senderId", "senderName", "recipientId", "itemId", "itemName",
+        "quantity", "coinsGift", "status", "createdAt", "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/PlayerProfile" },
+      "description": "User-owned fishing profile and progression state."
+    },
+    "/users/{userId}/catches/{catchId}": {
+      "schema": { "$ref": "#/entities/FishCatchRecord" },
+      "description": "Caught fish inventory and Fishdex personal records."
+    },
+    "/users/{userId}/gear/{gearId}": {
+      "schema": { "$ref": "#/entities/OwnedGearItem" },
+      "description": "Player owned fishing equipment, upgrades, and bait."
+    },
+    "/users/{userId}/missions/{missionId}": {
+      "schema": { "$ref": "#/entities/MissionProgress" },
+      "description": "Player mission and achievement completion progress."
+    },
+    "/users/{userId}/friends/{friendId}": {
+      "schema": { "$ref": "#/entities/FriendEntry" },
+      "description": "Player friend list entries."
+    },
+    "/leaderboard/{entryId}": {
+      "schema": { "$ref": "#/entities/LeaderboardEntry" },
+      "description": "Global/weekly/tournament public leaderboard entries."
+    },
+    "/rooms/{roomId}": {
+      "schema": { "$ref": "#/entities/MultiplayerRoom" },
+      "description": "Multiplayer fishing rooms."
+    },
+    "/rooms/{roomId}/players/{playerId}": {
+      "schema": { "$ref": "#/entities/RoomPlayer" },
+      "description": "Live players inside a multiplayer fishing room."
+    },
+    "/rooms/{roomId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/RoomMessage" },
+      "description": "Real-time room chat and emote stream."
+    },
+    "/gifts/{giftId}": {
+      "schema": { "$ref": "#/entities/PlayerGift" },
+      "description": "Item trades and gifts sent between players."
+    }
+  }
+}

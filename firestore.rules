@@ -1,0 +1,474 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    function isValidRarity(r) {
+      return r in ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'];
+    }
+
+    // --- Entity Validation Helpers ---
+    function isValidPlayerProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.username is string && data.username.size() >= 1 && data.username.size() <= 30 &&
+             data.avatarId is string && data.avatarId.size() >= 1 && data.avatarId.size() <= 32 &&
+             data.level is int && data.level >= 1 && data.level <= 999 &&
+             data.xp is int && data.xp >= 0 &&
+             data.coins is int && data.coins >= 0 &&
+             data.gems is int && data.gems >= 0 &&
+             data.totalCatches is int && data.totalCatches >= 0 &&
+             (data.biggestCatchWeightKg is number) && data.biggestCatchWeightKg >= 0 &&
+             data.biggestCatchFishName is string && data.biggestCatchFishName.size() <= 64 &&
+             data.equippedRodId is string && data.equippedRodId.size() >= 1 && data.equippedRodId.size() <= 64 &&
+             data.equippedReelId is string && data.equippedReelId.size() >= 1 && data.equippedReelId.size() <= 64 &&
+             data.equippedLineId is string && data.equippedLineId.size() >= 1 && data.equippedLineId.size() <= 64 &&
+             data.equippedBaitId is string && data.equippedBaitId.size() >= 1 && data.equippedBaitId.size() <= 64 &&
+             data.equippedSkinId is string && data.equippedSkinId.size() >= 1 && data.equippedSkinId.size() <= 64 &&
+             data.activeLocationId is string && data.activeLocationId.size() >= 1 && data.activeLocationId.size() <= 64 &&
+             data.loginStreakDay is int && data.loginStreakDay >= 1 && data.loginStreakDay <= 7 &&
+             data.lastLoginDate is string && data.lastLoginDate.size() <= 32 &&
+             data.battlePassXp is int && data.battlePassXp >= 0 &&
+             data.isPremiumPass is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidCatchRecord(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.fishId is string && data.fishId.size() >= 1 && data.fishId.size() <= 64 &&
+             data.fishName is string && data.fishName.size() >= 1 && data.fishName.size() <= 64 &&
+             isValidRarity(data.rarity) &&
+             (data.weightKg is number) && data.weightKg > 0 &&
+             (data.lengthCm is number) && data.lengthCm > 0 &&
+             data.locationId is string && data.locationId.size() >= 1 && data.locationId.size() <= 64 &&
+             data.weather is string && data.weather.size() >= 1 && data.weather.size() <= 32 &&
+             data.sellPrice is int && data.sellPrice >= 0 &&
+             data.isKept is bool &&
+             data.isRecord is bool &&
+             isValidTimestamp(data.caughtAt);
+    }
+
+    function isValidGearItem(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.itemId is string && data.itemId.size() >= 1 && data.itemId.size() <= 64 &&
+             data.category in ['Rod', 'Reel', 'Line', 'Bait', 'Skin', 'Item'] &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 64 &&
+             isValidRarity(data.rarity) &&
+             data.level is int && data.level >= 1 && data.level <= 50 &&
+             data.power is int && data.power >= 0 &&
+             data.control is int && data.control >= 0 &&
+             data.durability is int && data.durability >= 0 &&
+             data.quantity is int && data.quantity >= 0 &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidMissionProgress(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.missionId is string && data.missionId.size() >= 1 && data.missionId.size() <= 64 &&
+             data.progress is int && data.progress >= 0 &&
+             data.claimed is bool &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidFriendEntry(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.friendUid is string && data.friendUid.size() >= 1 && data.friendUid.size() <= 128 &&
+             data.friendName is string && data.friendName.size() >= 1 && data.friendName.size() <= 30 &&
+             data.friendLevel is int && data.friendLevel >= 1 &&
+             data.avatarId is string && data.avatarId.size() >= 1 && data.avatarId.size() <= 32 &&
+             data.isOnline is bool &&
+             isValidTimestamp(data.addedAt);
+    }
+
+    function isValidLeaderboardEntry(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.username is string && data.username.size() >= 1 && data.username.size() <= 30 &&
+             data.avatarId is string && data.avatarId.size() >= 1 && data.avatarId.size() <= 32 &&
+             data.level is int && data.level >= 1 &&
+             data.biggestFishName is string && data.biggestFishName.size() <= 64 &&
+             (data.biggestWeightKg is number) && data.biggestWeightKg >= 0 &&
+             data.tournamentScore is int && data.tournamentScore >= 0 &&
+             data.totalCatches is int && data.totalCatches >= 0 &&
+             data.isPublic is bool &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidRoom(data) {
+      return data.hostId is string && data.hostId.size() >= 1 && data.hostId.size() <= 128 &&
+             data.roomCode is string && data.roomCode.size() >= 4 && data.roomCode.size() <= 12 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 50 &&
+             data.region in ['Indonesia', 'Asia', 'Global', 'Eropa', 'Amerika'] &&
+             data.locationId is string && data.locationId.size() >= 1 && data.locationId.size() <= 64 &&
+             data.status in ['waiting', 'playing', 'closed'] &&
+             data.maxPlayers is int && data.maxPlayers >= 2 && data.maxPlayers <= 8 &&
+             data.playerCount is int && data.playerCount >= 1 && data.playerCount <= 8 &&
+             data.participantIds is list && data.participantIds.size() <= 8 &&
+             (data.participantIds.size() == 0 || data.participantIds[0] is string) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidRoomPlayer(data) {
+      return data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.username is string && data.username.size() >= 1 && data.username.size() <= 30 &&
+             data.avatarId is string && data.avatarId.size() >= 1 && data.avatarId.size() <= 32 &&
+             data.level is int && data.level >= 1 &&
+             data.isReady is bool &&
+             data.score is int && data.score >= 0 &&
+             data.lastCatchName is string && data.lastCatchName.size() <= 64 &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidRoomMessage(data) {
+      return data.roomId is string && data.roomId.size() >= 1 && data.roomId.size() <= 128 &&
+             data.senderId is string && data.senderId.size() >= 1 && data.senderId.size() <= 128 &&
+             data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 30 &&
+             data.text is string && data.text.size() >= 1 && data.text.size() <= 300 &&
+             data.type in ['chat', 'emote', 'quick_chat', 'system'] &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidGift(data) {
+      return data.senderId is string && data.senderId.size() >= 1 && data.senderId.size() <= 128 &&
+             data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 30 &&
+             data.recipientId is string && data.recipientId.size() >= 1 && data.recipientId.size() <= 128 &&
+             data.itemId is string && data.itemId.size() <= 64 &&
+             data.itemName is string && data.itemName.size() <= 64 &&
+             data.quantity is int && data.quantity >= 0 &&
+             data.coinsGift is int && data.coinsGift >= 0 &&
+             data.status in ['pending', 'claimed'] &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    // --- Collection Rules ---
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll([
+                         'userId', 'username', 'avatarId', 'level', 'xp', 'coins', 'gems',
+                         'totalCatches', 'biggestCatchWeightKg', 'biggestCatchFishName',
+                         'equippedRodId', 'equippedReelId', 'equippedLineId', 'equippedBaitId',
+                         'equippedSkinId', 'activeLocationId', 'loginStreakDay', 'lastLoginDate',
+                         'battlePassXp', 'isPremiumPass', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'username', 'avatarId', 'level', 'xp', 'coins', 'gems',
+                         'totalCatches', 'biggestCatchWeightKg', 'biggestCatchFishName',
+                         'equippedRodId', 'equippedReelId', 'equippedLineId', 'equippedBaitId',
+                         'equippedSkinId', 'activeLocationId', 'loginStreakDay', 'lastLoginDate',
+                         'battlePassXp', 'isPremiumPass', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidPlayerProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidPlayerProfile(incoming()) &&
+                       request.auth.uid == userId &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'username', 'avatarId', 'level', 'xp', 'coins', 'gems',
+                         'totalCatches', 'biggestCatchWeightKg', 'biggestCatchFishName',
+                         'equippedRodId', 'equippedReelId', 'equippedLineId', 'equippedBaitId',
+                         'equippedSkinId', 'activeLocationId', 'loginStreakDay', 'lastLoginDate',
+                         'battlePassXp', 'isPremiumPass', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+
+      match /catches/{catchId} {
+        allow get: if isSignedIn() && isValidId(catchId) && request.auth.uid == userId;
+        allow list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         isValidId(catchId) &&
+                         request.auth.uid == userId &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'userId', 'fishId', 'fishName', 'rarity', 'weightKg', 'lengthCm',
+                           'locationId', 'weather', 'sellPrice', 'isKept', 'isRecord', 'caughtAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'fishId', 'fishName', 'rarity', 'weightKg', 'lengthCm',
+                           'locationId', 'weather', 'sellPrice', 'isKept', 'isRecord', 'caughtAt'
+                         ]) &&
+                         isValidCatchRecord(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(catchId) &&
+                         isValidCatchRecord(incoming()) &&
+                         request.auth.uid == userId &&
+                         incoming().userId == existing().userId &&
+                         incoming().caughtAt == existing().caughtAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['isKept', 'isRecord']);
+
+        allow delete: if isSignedIn() && isValidId(catchId) && request.auth.uid == userId;
+      }
+
+      match /gear/{gearId} {
+        allow get: if isSignedIn() && isValidId(gearId) && request.auth.uid == userId;
+        allow list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         isValidId(gearId) &&
+                         request.auth.uid == userId &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'userId', 'itemId', 'category', 'name', 'rarity',
+                           'level', 'power', 'control', 'durability', 'quantity', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'itemId', 'category', 'name', 'rarity',
+                           'level', 'power', 'control', 'durability', 'quantity', 'updatedAt'
+                         ]) &&
+                         isValidGearItem(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(gearId) &&
+                         isValidGearItem(incoming()) &&
+                         request.auth.uid == userId &&
+                         incoming().userId == existing().userId &&
+                         incoming().itemId == existing().itemId &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'level', 'power', 'control', 'durability', 'quantity', 'updatedAt'
+                         ]);
+
+        allow delete: if isSignedIn() && isValidId(gearId) && request.auth.uid == userId;
+      }
+
+      match /missions/{missionId} {
+        allow get: if isSignedIn() && isValidId(missionId) && request.auth.uid == userId;
+        allow list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         isValidId(missionId) &&
+                         request.auth.uid == userId &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll(['userId', 'missionId', 'progress', 'claimed', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'missionId', 'progress', 'claimed', 'updatedAt']) &&
+                         isValidMissionProgress(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(missionId) &&
+                         isValidMissionProgress(incoming()) &&
+                         request.auth.uid == userId &&
+                         incoming().userId == existing().userId &&
+                         incoming().missionId == existing().missionId &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['progress', 'claimed', 'updatedAt']);
+
+        allow delete: if isSignedIn() && isValidId(missionId) && request.auth.uid == userId;
+      }
+
+      match /friends/{friendId} {
+        allow get: if isSignedIn() && isValidId(friendId) && request.auth.uid == userId;
+        allow list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         isValidId(friendId) &&
+                         request.auth.uid == userId &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'userId', 'friendUid', 'friendName', 'friendLevel', 'avatarId', 'isOnline', 'addedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'friendUid', 'friendName', 'friendLevel', 'avatarId', 'isOnline', 'addedAt'
+                         ]) &&
+                         isValidFriendEntry(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(friendId) &&
+                         isValidFriendEntry(incoming()) &&
+                         request.auth.uid == userId &&
+                         incoming().userId == existing().userId &&
+                         incoming().addedAt == existing().addedAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['friendName', 'friendLevel', 'avatarId', 'isOnline']);
+
+        allow delete: if isSignedIn() && isValidId(friendId) && request.auth.uid == userId;
+      }
+    }
+
+    match /leaderboard/{entryId} {
+      allow get: if isSignedIn() && isValidId(entryId) &&
+                    (request.auth.uid == entryId || (resource != null && resource.data.isPublic == true));
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+
+      allow create: if isSignedIn() &&
+                       isValidId(entryId) &&
+                       request.auth.uid == entryId &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().isPublic == true &&
+                       incoming().keys().hasAll([
+                         'userId', 'username', 'avatarId', 'level', 'biggestFishName',
+                         'biggestWeightKg', 'tournamentScore', 'totalCatches', 'isPublic', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'username', 'avatarId', 'level', 'biggestFishName',
+                         'biggestWeightKg', 'tournamentScore', 'totalCatches', 'isPublic', 'updatedAt'
+                       ]) &&
+                       isValidLeaderboardEntry(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(entryId) &&
+                       isValidLeaderboardEntry(incoming()) &&
+                       request.auth.uid == entryId &&
+                       incoming().userId == existing().userId &&
+                       incoming().isPublic == true &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'username', 'avatarId', 'level', 'biggestFishName',
+                         'biggestWeightKg', 'tournamentScore', 'totalCatches', 'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(entryId) && request.auth.uid == entryId;
+    }
+
+    match /rooms/{roomId} {
+      allow get: if isSignedIn() && isValidId(roomId);
+      allow list: if isSignedIn() && resource.data.status in ['waiting', 'playing'];
+
+      allow create: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       incoming().hostId == request.auth.uid &&
+                       incoming().status == 'waiting' &&
+                       incoming().keys().hasAll([
+                         'hostId', 'roomCode', 'name', 'region', 'locationId', 'status',
+                         'maxPlayers', 'playerCount', 'participantIds', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'hostId', 'roomCode', 'name', 'region', 'locationId', 'status',
+                         'maxPlayers', 'playerCount', 'participantIds', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidRoom(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(roomId) &&
+                       isValidRoom(incoming()) &&
+                       existing().status != 'closed' &&
+                       incoming().hostId == existing().hostId &&
+                       incoming().roomCode == existing().roomCode &&
+                       incoming().createdAt == existing().createdAt && (
+                         (existing().hostId == request.auth.uid &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'locationId', 'status', 'playerCount', 'participantIds', 'updatedAt'])) ||
+                         (incoming().diff(existing()).affectedKeys().hasOnly(['playerCount', 'participantIds', 'updatedAt']))
+                       );
+
+      allow delete: if isSignedIn() && isValidId(roomId) && existing().hostId == request.auth.uid;
+
+      match /players/{playerId} {
+        allow get: if isSignedIn() && isValidId(roomId) && isValidId(playerId);
+        allow list: if isSignedIn() && resource.data.roomId == roomId;
+
+        allow create: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(playerId) &&
+                         request.auth.uid == playerId &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().roomId == roomId &&
+                         incoming().keys().hasAll([
+                           'roomId', 'userId', 'username', 'avatarId', 'level',
+                           'isReady', 'score', 'lastCatchName', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'roomId', 'userId', 'username', 'avatarId', 'level',
+                           'isReady', 'score', 'lastCatchName', 'updatedAt'
+                         ]) &&
+                         isValidRoomPlayer(incoming()) &&
+                         exists(/databases/$(database)/documents/rooms/$(roomId));
+
+        allow update: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(playerId) &&
+                         isValidRoomPlayer(incoming()) &&
+                         request.auth.uid == playerId &&
+                         incoming().userId == existing().userId &&
+                         incoming().roomId == existing().roomId &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'username', 'avatarId', 'level', 'isReady', 'score', 'lastCatchName', 'updatedAt'
+                         ]);
+
+        allow delete: if isSignedIn() && isValidId(roomId) && isValidId(playerId) && request.auth.uid == playerId;
+      }
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(roomId) && isValidId(messageId);
+        allow list: if isSignedIn() && resource.data.roomId == roomId;
+
+        allow create: if isSignedIn() &&
+                         isValidId(roomId) &&
+                         isValidId(messageId) &&
+                         incoming().senderId == request.auth.uid &&
+                         incoming().roomId == roomId &&
+                         incoming().keys().hasAll(['roomId', 'senderId', 'senderName', 'text', 'type', 'createdAt']) &&
+                         incoming().keys().hasOnly(['roomId', 'senderId', 'senderName', 'text', 'type', 'createdAt']) &&
+                         isValidRoomMessage(incoming()) &&
+                         exists(/databases/$(database)/documents/rooms/$(roomId));
+
+        allow update, delete: if false;
+      }
+    }
+
+    match /gifts/{giftId} {
+      allow get: if isSignedIn() && isValidId(giftId) &&
+                    (resource.data.recipientId == request.auth.uid || resource.data.senderId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.recipientId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(giftId) &&
+                       incoming().senderId == request.auth.uid &&
+                       incoming().status == 'pending' &&
+                       incoming().keys().hasAll([
+                         'senderId', 'senderName', 'recipientId', 'itemId', 'itemName',
+                         'quantity', 'coinsGift', 'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'senderId', 'senderName', 'recipientId', 'itemId', 'itemName',
+                         'quantity', 'coinsGift', 'status', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidGift(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(giftId) &&
+                       isValidGift(incoming()) &&
+                       existing().status == 'pending' &&
+                       existing().recipientId == request.auth.uid &&
+                       incoming().senderId == existing().senderId &&
+                       incoming().recipientId == existing().recipientId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(giftId) &&
+                       (existing().senderId == request.auth.uid || existing().recipientId == request.auth.uid);
+    }
+  }
+}

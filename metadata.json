@@ -1,0 +1,6 @@
+{
+  "name": "Fishing Master",
+  "description": "Game simulasi memancing interaktif dengan cuaca dinamis, sistem ekonomi, Fishdex, dan multiplayer online.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
